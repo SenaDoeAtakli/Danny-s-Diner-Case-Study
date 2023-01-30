@@ -101,5 +101,15 @@ on dbo.sales.product_id = dbo.menu.product_id
 where dbo.sales.order_date < dbo.members.join_date
 group by dbo.sales.customer_id
 
+9) If each $1 spent equates to 10 points and sushi has a 2x points multiplier - how many points would each customer have?
+select dbo.sales.customer_id,
+sum (case 
+when dbo.menu.product_name = 'sushi' then price * 10 * 2
+else price * 10
+end) as points
+from dbo.menu
+join dbo.sales on dbo.sales.product_id = dbo.menu.product_id
+group by customer_id
+
 
 
