@@ -1,0 +1,103 @@
+
+1) What is the total amount each customer spent at the restaurant?
+
+select  s.customer_id, sum(menu.price)
+from sales s 
+join menu 
+on s.product_id = menu.product_id
+group by customer_id 
+
+2)How many days has each customer visited the restaurant?
+
+select customer_id, count(distinct order_date) 
+from sales
+group by customer_id 
+
+3) What was the first item from the menu purchased by each customer?
+select 
+with cte as (
+select 
+dbo.sales.customer_id,
+dbo.sales.order_date,
+dbo.menu.product_name,
+row_number () over(partition by customer_id order by order_date asc) as rnk
+from dbo.sales
+join dbo.menu 
+on dbo.sales.product_id = dbo.menu.product_id
+)
+select * from cte
+where rnk = 1
+
+4) What is the most purchased item on the menu and how many times was it purchased by all customers?
+select top 1 product_name, 
+count (order_date) as orders
+from dbo.sales
+join dbo.menu 
+on dbo.sales.product_id = dbo.menu.product_id
+group by product_name
+order by orders desc
+
+5) Which item was the most popular for each customer?
+with cte as 
+(select
+customer_id,
+product_name, 
+count (order_date) as orders,
+row_number () over (partition by customer_id order by count (order_date) desc) as rnk
+from dbo.sales
+join dbo.menu 
+on dbo.sales.product_id = dbo.menu.product_id
+group by customer_id, product_name
+)
+select customer_id, product_name 
+from cte
+where rnk = 1
+
+6)Which item was purchased first by the customer after they became a member?
+with cte as (select dbo.sales.customer_id,
+dbo.menu.product_name,
+dbo.sales.order_date,
+dbo.members.join_date,
+row_number () over (partition by dbo.sales.customer_id order by order_date asc) rnk
+from dbo.sales
+join dbo.members 
+on dbo.sales.customer_id = dbo.members.customer_id
+join dbo.menu 
+on dbo.sales.product_id = dbo.menu.product_id
+where dbo.sales.order_date >= dbo.members.join_date)
+
+select customer_id,product_name as first_purchase
+from cte
+where rnk = 1
+
+7) Which item was purchased just before the customer became a member?
+with cte as (select dbo.sales.customer_id,
+dbo.menu.product_name,
+dbo.sales.order_date,
+dbo.members.join_date,
+row_number () over (partition by dbo.sales.customer_id order by order_date desc) rnk
+from dbo.sales
+join dbo.members 
+on dbo.sales.customer_id = dbo.members.customer_id
+join dbo.menu 
+on dbo.sales.product_id = dbo.menu.product_id
+where dbo.sales.order_date < dbo.members.join_date)
+
+select customer_id,product_name as first_purchase
+from cte
+where rnk = 1
+
+8) What is the total items and amount spent for each member before they became a member?
+select dbo.sales.customer_id,
+count(dbo.menu.product_name) as items_bought,
+sum(dbo.menu.price) as total_spent
+from dbo.sales
+join dbo.members 
+on dbo.sales.customer_id = dbo.members.customer_id
+join dbo.menu 
+on dbo.sales.product_id = dbo.menu.product_id
+where dbo.sales.order_date < dbo.members.join_date
+group by dbo.sales.customer_id
+
+
+
